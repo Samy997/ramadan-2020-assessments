@@ -16,10 +16,10 @@ function getSingleVidReq(vidInfo) {
 							}
 							</p>
 						</div>
-						<div class="d-flex flex-column text-center">
-							<a class="btn btn-link">🔺</a>
-							<h3>${vidInfo.votes.ups - vidInfo.votes.downs}</h3>
-							<a class="btn btn-link">🔻</a>
+						<div class="d-flex flex-column text-center" id="${vidInfo._id}">
+							<a class="btn btn-link ups">🔺</a>
+							<h3 id="votes-${vidInfo._id}">${vidInfo.votes.ups - vidInfo.votes.downs}</h3>
+							<a class="btn btn-link downs">🔻</a>
 						</div>
 					</div>
 					<div class="card-footer d-flex flex-row justify-content-between">
@@ -43,7 +43,8 @@ function getSingleVidReq(vidInfo) {
 document.addEventListener('DOMContentLoaded', (event) => {
 	const baseURL = 'http://localhost:7777';
 	const APIs = {
-		requestVideo: '/video-request'
+		requestVideo: '/video-request',
+		vote: '/video-request/vote'
 	};
 	const requestVideoFormElm = document.getElementsByTagName('form')[0];
 	const videoRequestsContainerElm = document.getElementById('listOfRequests');
@@ -61,6 +62,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 			.then((blob) => blob.json())
 			.then((res) => {
 				videoRequestsContainerElm.prepend(getSingleVidReq(res));
+				listenOnAllElements();
 				e.target.reset();
 			});
 	});
@@ -72,11 +74,42 @@ document.addEventListener('DOMContentLoaded', (event) => {
 				(res) => {
 					res.forEach((request) => {
 						videoRequestsContainerElm.appendChild(getSingleVidReq(request));
+						listenOnAllElements();
 					});
 				},
 				(err) => {
 					console.log(err);
 				}
+			);
+	}
+
+	function listenOnAllElements() {
+		let upsElementsArr = document.querySelectorAll('.ups');
+		upsElementsArr.forEach((el) => {
+			el.addEventListener('click', vote);
+		});
+		let downsElementsArr = document.querySelectorAll('.downs');
+		downsElementsArr.forEach((el) => {
+			el.addEventListener('click', vote);
+		});
+	}
+
+	function vote(e) {
+		const id = e.target.parentNode.id;
+		const vote = e.target.classList[e.target.classList.length - 1];
+
+		fetch(baseURL + APIs.vote, {
+			method: 'PUT',
+			headers: {
+				'content-Type': 'application/json'
+			},
+			body: JSON.stringify({ id, vote_type: vote })
+		})
+			.then((blob) => blob.json())
+			.then(
+				(res) =>
+					(document.getElementById('votes-' + id).innerText =
+						res.ups - res.downs)
 			);
 	}
 });
